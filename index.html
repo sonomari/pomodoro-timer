@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポモドーロタイマー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ffc0cb 0%, #ffb3c1 100%);
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .timer-display {
+            font-size: 72px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .status.work {
+            color: #e74c3c;
+        }
+
+        .status.break {
+            color: #27ae60;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .start-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .pause-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .reset-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stats p {
+            font-size: 18px;
+            color: #555;
+            margin: 5px 0;
+        }
+
+        .stats strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍅 ポモドーロタイマー</h1>
+        
+        <div class="status" id="status">作業時間</div>
+        <div class="timer-display" id="timer">25:00</div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+        
+        <div class="buttons">
+            <button class="start-btn" id="startBtn">開始</button>
+            <button class="pause-btn" id="pauseBtn" style="display:none;">一時停止</button>
+            <button class="reset-btn" id="resetBtn">リセット</button>
+        </div>
+        
+        <div class="stats">
+            <p>完了: <strong id="completedCount">0</strong> ポモドーロ</p>
+        </div>
+    </div>
+
+    <script>
+        const WORK_TIME = 25 * 60; // 25分
+        const BREAK_TIME = 5 * 60; // 5分
+        
+        let timeLeft = WORK_TIME;
+        let totalTime = WORK_TIME;
+        let isRunning = false;
+        let isWorkTime = true;
+        let interval = null;
+        let completedPomodoros = 0;
+        
+        const timerDisplay = document.getElementById('timer');
+        const statusDisplay = document.getElementById('status');
+        const progressFill = document.getElementById('progress');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const completedCount = document.getElementById('completedCount');
+        
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            const progress = ((totalTime - timeLeft) / totalTime) * 100;
+            progressFill.style.width = `${progress}%`;
+        }
+        
+        function startTimer() {
+            isRunning = true;
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            
+            interval = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    playSound();
+                    switchMode();
+                }
+            }, 1000);
+        }
+        
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(interval);
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            startBtn.textContent = '再開';
+        }
+        
+        function resetTimer() {
+            clearInterval(interval);
+            isRunning = false;
+            isWorkTime = true;
+            timeLeft = WORK_TIME;
+            totalTime = WORK_TIME;
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            startBtn.textContent = '開始';
+            statusDisplay.textContent = '作業時間';
+            statusDisplay.className = 'status work';
+            updateDisplay();
+        }
+        
+        function switchMode() {
+            if (isWorkTime) {
+                completedPomodoros++;
+                completedCount.textContent = completedPomodoros;
+                isWorkTime = false;
+                timeLeft = BREAK_TIME;
+                totalTime = BREAK_TIME;
+                statusDisplay.textContent = '休憩時間';
+                statusDisplay.className = 'status break';
+            } else {
+                isWorkTime = true;
+                timeLeft = WORK_TIME;
+                totalTime = WORK_TIME;
+                statusDisplay.textContent = '作業時間';
+                statusDisplay.className = 'status work';
+            }
+            
+            updateDisplay();
+            startBtn.textContent = '開始';
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            isRunning = false;
+        }
+        
+        function playSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // チロチロチンの部分（素早い3音）
+            [0, 0.15, 0.3].forEach((time, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.frequency.value = 1000;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.25, audioContext.currentTime + time);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + time + 0.1);
+                
+                osc.start(audioContext.currentTime + time);
+                osc.stop(audioContext.currentTime + time + 0.1);
+            });
+            
+            // チン・チン・チンの部分（低めの3音）
+            [0.6, 1.0, 1.4].forEach((time) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.frequency.value = 800;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, audioContext.currentTime + time);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + time + 0.3);
+                
+                osc.start(audioContext.currentTime + time);
+                osc.stop(audioContext.currentTime + time + 0.3);
+            });
+        }
+        
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        
+        updateDisplay();
+    </script>
+</body>
+</html>
