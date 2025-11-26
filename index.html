@@ -144,6 +144,13 @@
             <div class="progress-fill" id="progress"></div>
         </div>
         
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 14px; color: #666;">作業時間（分）:</label>
+            <input type="number" id="workTime" value="25" min="1" max="60" style="width: 60px; padding: 5px; margin: 0 10px; border: 2px solid #ddd; border-radius: 5px;">
+            <label style="font-size: 14px; color: #666;">休憩時間（分）:</label>
+            <input type="number" id="breakTime" value="5" min="1" max="30" style="width: 60px; padding: 5px; margin-left: 10px; border: 2px solid #ddd; border-radius: 5px;">
+        </div>
+        
         <div class="buttons">
             <button class="start-btn" id="startBtn">開始</button>
             <button class="pause-btn" id="pauseBtn" style="display:none;">一時停止</button>
@@ -156,8 +163,8 @@
     </div>
 
     <script>
-        const WORK_TIME = 25 * 60; // 25分
-        const BREAK_TIME = 5 * 60; // 5分
+        let WORK_TIME = 25 * 60; // 25分
+        let BREAK_TIME = 5 * 60; // 5分
         
         let timeLeft = WORK_TIME;
         let totalTime = WORK_TIME;
@@ -173,6 +180,31 @@
         const pauseBtn = document.getElementById('pauseBtn');
         const resetBtn = document.getElementById('resetBtn');
         const completedCount = document.getElementById('completedCount');
+        const workTimeInput = document.getElementById('workTime');
+        const breakTimeInput = document.getElementById('breakTime');
+        
+        // 時間設定が変更されたとき
+        workTimeInput.addEventListener('change', () => {
+            if (!isRunning) {
+                WORK_TIME = parseInt(workTimeInput.value) * 60;
+                if (isWorkTime) {
+                    timeLeft = WORK_TIME;
+                    totalTime = WORK_TIME;
+                    updateDisplay();
+                }
+            }
+        });
+        
+        breakTimeInput.addEventListener('change', () => {
+            if (!isRunning) {
+                BREAK_TIME = parseInt(breakTimeInput.value) * 60;
+                if (!isWorkTime) {
+                    timeLeft = BREAK_TIME;
+                    totalTime = BREAK_TIME;
+                    updateDisplay();
+                }
+            }
+        });
         
         function updateDisplay() {
             const minutes = Math.floor(timeLeft / 60);
